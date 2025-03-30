@@ -10,8 +10,10 @@ public class ResponseHandler : MonoBehaviour
     [SerializeField] private RectTransform responseButtonTemplate;
     [SerializeField] private RectTransform responseContainer;
     
-    [SerializeField] private TMP_Text MovesLeft;
-    public float NumberMovesLeft = 40;
+    // This text displays the timer.
+    [SerializeField] private TMP_Text TimerDisplay;
+    // Initialize the timer to 11:00 (11 hours, 0 minutes, 0 seconds).
+    private TimeSpan currentTime = new TimeSpan(11, 0, 0);
 
     private DialogueUI dialogueUI;
     private ResponseEvent[] responseEvents;
@@ -29,7 +31,7 @@ public class ResponseHandler : MonoBehaviour
     private void Start()
     {
         dialogueUI = GetComponent<DialogueUI>();
-        MovesLeft.text = "Осталось ходов: " + NumberMovesLeft;
+        UpdateTimerDisplay();
     }
 
     public void AddResponseEvents(ResponseEvent[] responseEvents)
@@ -51,9 +53,9 @@ public class ResponseHandler : MonoBehaviour
             responseButton.gameObject.SetActive(true);
             
             string displayText = response.ResponseText;
-            if (displayText.Contains("[-1 Ход]") && clickedResponseKeys.Contains(key))
+            if (displayText.Contains("[+15 мин]") && clickedResponseKeys.Contains(key))
             {
-                displayText = displayText.Replace("[-1 Ход]", "");
+                displayText = displayText.Replace("[+15 мин]", "");
             }
 
             if (clickedResponseKeys.Contains(key))
@@ -62,7 +64,7 @@ public class ResponseHandler : MonoBehaviour
             }
             
             TMP_Text buttonText = responseButton.GetComponent<TMP_Text>();
-            buttonText.text = responseIndex+1 + ") - " + displayText;
+            buttonText.text = responseIndex + 1 + ") - " + displayText;
             buttonText.color = currentColor; // Set the color.
 
             Button buttonComponent = responseButton.GetComponent<Button>();
@@ -79,10 +81,11 @@ public class ResponseHandler : MonoBehaviour
 
     private void OnPickedResponse(Response response, int responseIndex, string responseText, string key, TMP_Text buttonText)
     {
-        if (responseText.Contains("[-1 Ход]") && !clickedResponseKeys.Contains(key))
+        // If the response contains "[+15 мин]" and hasn't been clicked, add 15 minutes.
+        if (responseText.Contains("[+15 мин]") && !clickedResponseKeys.Contains(key))
         {
-            NumberMovesLeft--;
-            MovesLeft.text = "Осталось ходов: " + NumberMovesLeft;
+            currentTime = currentTime.Add(TimeSpan.FromMinutes(15));
+            UpdateTimerDisplay();
             clickedResponseKeys.Add(key);
         }
         if (!clickedResponseKeys.Contains(key))
@@ -112,6 +115,12 @@ public class ResponseHandler : MonoBehaviour
         {
             dialogueUI.CloseDialogueBox();
         }
+    }
+
+    // Updates the timer display text in hh:mm format.
+    private void UpdateTimerDisplay()
+    {
+        TimerDisplay.text = "Время: " + currentTime.ToString(@"hh\:mm");
     }
 
     public void Interact(Player_movement player)
