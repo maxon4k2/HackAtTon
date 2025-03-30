@@ -11,8 +11,8 @@ public class TypeWriterEffect : MonoBehaviour
     //Функция(List[HashSet]) определяет длительность ожидания когда встречаются знаки препинания
     private readonly List<Punctuation> punctuations = new List<Punctuation>()
     {
-        new Punctuation(new HashSet<char>() {'.', '!', '?'}, 0.3f),
-        new Punctuation(new HashSet<char>() {',', ';', ':'}, 0.15f)
+        new Punctuation(new HashSet<char>() {'.', '!', '?'}, 0.5f),
+        new Punctuation(new HashSet<char>() {',', ';', ':'}, 0.2f)
     };
 
     private Coroutine typingCoroutine;

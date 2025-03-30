@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using System;
 using System.Collections.Generic;
 
 public class ResponseHandler : MonoBehaviour
@@ -17,8 +18,13 @@ public class ResponseHandler : MonoBehaviour
 
     private List<GameObject> tempResponseButtons = new List<GameObject>();
 
-    // Keeps track of responses for which the move cost has already been applied.
-    private static HashSet<string> spentMoveKeys = new HashSet<string>();
+    // Keeps track of responses that have been clicked.
+    private static HashSet<string> clickedResponseKeys = new HashSet<string>();
+
+    // Define the original and clicked colors. 
+    private Color originalColor = new Color(170f / 255f, 62f / 255f, 202f / 255f, 1f); // Full.
+    private Color clickedColor = new Color(170f / 255f, 62f / 255f, 202f / 255f, 0.3f); // Semi-transparent.
+    private Color currentColor = new Color(170f / 255f, 62f / 255f, 202f / 255f, 0.3f); // Current color
 
     private void Start()
     {
@@ -35,30 +41,32 @@ public class ResponseHandler : MonoBehaviour
     {
         float responseBoxHeight = 40f;
 
-        for (int i = 0; i < responses.Length; i++)
+        foreach (Response response in responses)
         {
-            Response response = responses[i];
-            int responseIndex = i;
-            // Create a unique key for this response option.
-            // (This assumes that response.GetHashCode() is sufficiently unique along with its index.)
-            string key = response.GetHashCode() + "_" + i;
+            currentColor = originalColor;
+            int responseIndex = Array.IndexOf(responses, response);
+            string key = response.GetHashCode() + "_" + responseIndex;
 
             GameObject responseButton = Instantiate(responseButtonTemplate.gameObject, responseContainer);
             responseButton.gameObject.SetActive(true);
-
-            // Prepare the display text.
+            
             string displayText = response.ResponseText;
-            // If the option contains the move cost caption and the move has been spent before, remove the caption.
-            if (displayText.Contains("[-1 Ход]") && spentMoveKeys.Contains(key))
+            if (displayText.Contains("[-1 Ход]") && clickedResponseKeys.Contains(key))
             {
                 displayText = displayText.Replace("[-1 Ход]", "");
             }
-            responseButton.GetComponent<TMP_Text>().text = displayText;
-              
-            // When clicking, pass along the key so that we can check whether the move has been spent.
-            responseButton.GetComponent<Button>().onClick.AddListener(() => 
-                OnPickedResponse(response, responseIndex, displayText, key)
-            );
+
+            if (clickedResponseKeys.Contains(key))
+            {
+                currentColor = clickedColor;
+            }
+            
+            TMP_Text buttonText = responseButton.GetComponent<TMP_Text>();
+            buttonText.text = responseIndex+1 + ") - " + displayText;
+            buttonText.color = currentColor; // Set the color.
+
+            Button buttonComponent = responseButton.GetComponent<Button>();
+            buttonComponent.onClick.AddListener(() => OnPickedResponse(response, responseIndex, displayText, key, buttonText));
 
             tempResponseButtons.Add(responseButton);
 
@@ -69,16 +77,19 @@ public class ResponseHandler : MonoBehaviour
         responseBox.gameObject.SetActive(true);
     }
 
-    private void OnPickedResponse(Response response, int responseIndex, string responseText, string key)
+    private void OnPickedResponse(Response response, int responseIndex, string responseText, string key, TMP_Text buttonText)
     {
-        // If this response has the caption and the move hasn't been spent yet, subtract one move.
-        if (responseText.Contains("[-1 Ход]") && !spentMoveKeys.Contains(key))
+        if (responseText.Contains("[-1 Ход]") && !clickedResponseKeys.Contains(key))
         {
             NumberMovesLeft--;
             MovesLeft.text = "Осталось ходов: " + NumberMovesLeft;
-            spentMoveKeys.Add(key);
+            clickedResponseKeys.Add(key);
         }
-        
+        if (!clickedResponseKeys.Contains(key))
+        {
+            clickedResponseKeys.Add(key);
+        }
+
         responseBox.gameObject.SetActive(false);
 
         foreach (GameObject button in tempResponseButtons)
@@ -87,7 +98,7 @@ public class ResponseHandler : MonoBehaviour
         }
         tempResponseButtons.Clear();
 
-        if (responseEvents != null && responseIndex <= responseEvents.Length)
+        if (responseEvents != null && responseIndex < responseEvents.Length)
         {
             responseEvents[responseIndex].OnPickedResponse?.Invoke();
         }

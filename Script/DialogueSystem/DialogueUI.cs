@@ -49,6 +49,7 @@ public class DialogueUI : MonoBehaviour
             if (i == dialogueObject.Dialogue.Length - 1 && dialogueObject.HasResponses) break;
 
             yield return null;
+            //Скипает анимацию диалога??
             yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Space));
         }
         
@@ -69,7 +70,7 @@ public class DialogueUI : MonoBehaviour
         while (typeWriterEffect.IsRunning)
         {
             yield return null;
-
+            //Скипает анимацию диалога
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 typeWriterEffect.Stop();
