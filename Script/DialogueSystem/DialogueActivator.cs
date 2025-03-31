@@ -8,7 +8,8 @@ public class DialogueActivator : MonoBehaviour, IInteracteble
     [SerializeField] private DialogueObject dialogueObject;
 
     [SerializeField] private GameObject HideUITalk;
-
+    [SerializeField] private GameObject NPC_portrate;
+    
     public void UpdateDialogueObject(DialogueObject dialogueObject)
     {
         this.dialogueObject = dialogueObject;
@@ -47,7 +48,7 @@ public class DialogueActivator : MonoBehaviour, IInteracteble
                 break;
             }
         }
-        
+        NPC_portrate.SetActive(true);
         player.DialogueUI.ShowDialogue(dialogueObject);
     }
 }
