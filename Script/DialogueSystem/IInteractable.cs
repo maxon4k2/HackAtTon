@@ -1,4 +1,4 @@
-using UnityEditor.SpeedTree.Importer;
+//using UnityEditor.SpeedTree.Importer; чо это бля
 
 public interface IInteracteble
 {
