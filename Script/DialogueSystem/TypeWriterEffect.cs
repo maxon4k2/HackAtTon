@@ -5,7 +5,7 @@ using UnityEngine;
 using TMPro;
 public class TypeWriterEffect : MonoBehaviour
 {
-    [SerializeField] private float typewriterSpeed = 10f;
+    [SerializeField] public float typewriterSpeed = 45f;
     public bool IsRunning { get; private set; }
 
     //Функция(List[HashSet]) определяет длительность ожидания когда встречаются знаки препинания

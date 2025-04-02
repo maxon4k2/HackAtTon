@@ -16,7 +16,7 @@ public class DialogueResponseEvents : MonoBehaviour
         if (dialogueObject == null) return;
         if (dialogueObject.Responses == null) return;
         if (events != null && events.Length == dialogueObject.Responses.Length) return;
-
+        
         if (events == null)
         {
             events = new ResponseEvent[dialogueObject.Responses.Length];

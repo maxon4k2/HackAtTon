@@ -1,15 +1,14 @@
-using System;
-using Unity.VisualScripting;
+using System.Collections;
 using UnityEngine;
 
 public class DialogueActivator : MonoBehaviour, IInteracteble
 {
-
     [SerializeField] private DialogueObject dialogueObject;
-
     [SerializeField] private GameObject HideUITalk;
-    [SerializeField] private GameObject NPC_portrate;
-    
+    // Reference to the image on this character (assign via Inspector)
+    [SerializeField] private GameObject characterImage;
+     
+
     public void UpdateDialogueObject(DialogueObject dialogueObject)
     {
         this.dialogueObject = dialogueObject;
@@ -40,6 +39,9 @@ public class DialogueActivator : MonoBehaviour, IInteracteble
 
     public void Interact(Player_movement player)
     {
+        // Activate the character's dialogue image
+        characterImage.SetActive(true);
+
         foreach (DialogueResponseEvents responseEvents in GetComponents<DialogueResponseEvents>())
         {
             if (responseEvents.DialogueObject == dialogueObject)
@@ -48,7 +50,17 @@ public class DialogueActivator : MonoBehaviour, IInteracteble
                 break;
             }
         }
-        NPC_portrate.SetActive(true);
         player.DialogueUI.ShowDialogue(dialogueObject);
+
+        // Start coroutine to disable the image after dialogue finishes
+        StartCoroutine(DisableImageAfterDialogue(player));
+    }
+
+    private IEnumerator DisableImageAfterDialogue(Player_movement player)
+    {
+        // Wait until the dialogue is closed
+        yield return new WaitUntil(() => !player.DialogueUI.IsOpen);
+        // Deactivate the character's dialogue image
+        characterImage.SetActive(false);
     }
 }

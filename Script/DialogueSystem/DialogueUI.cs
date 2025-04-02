@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections;
 using UnityEngine;
@@ -12,6 +13,7 @@ public class DialogueUI : MonoBehaviour
     [SerializeField] private GameObject HideUI2;
 
     public bool IsOpen { get; private set; }
+    public bool NoTypeWriting = false;
 
     private TypeWriterEffect typeWriterEffect;
     private ResponseHandler responseHandler;
@@ -71,6 +73,12 @@ public class DialogueUI : MonoBehaviour
         {
             yield return null;
             //Скипает анимацию диалога
+            if (NoTypeWriting == true)
+            {
+                NoTypeWriting = false;
+                typeWriterEffect.Stop();
+            }
+            
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 typeWriterEffect.Stop();
