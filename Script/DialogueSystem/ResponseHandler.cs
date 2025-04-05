@@ -47,6 +47,7 @@ public void ShowResponse(Response[] responses)
     for (int i = 0; i < responses.Length; i++)
     {
         Response response = responses[i];
+        int responseIndex = i;
         // Generate a unique key using the response's hash code and the loop index.
         string key = response.GetHashCode() + "_" + i;
         // Create a display version that may have "[+15 мин]" removed if this unique key was clicked.
@@ -70,12 +71,12 @@ public void ShowResponse(Response[] responses)
         GameObject responseButton = Instantiate(responseButtonTemplate.gameObject, responseContainer);
         responseButton.SetActive(true);
         TMP_Text buttonText = responseButton.GetComponent<TMP_Text>();
-        buttonText.text = (i + 1) + ") - " + displayText;
+        buttonText.text = i + 1 + ") - " + displayText;
         buttonText.color = buttonColor;
 
         Button buttonComponent = responseButton.GetComponent<Button>();
         // Note: Now we pass only four arguments, matching your OnPickedResponse signature.
-        buttonComponent.onClick.AddListener(() => OnPickedResponse(response, i, key));
+        buttonComponent.onClick.AddListener(() => OnPickedResponse(response, responseIndex, key));
 
         tempResponseButtons.Add(responseButton);
         responseBoxHeight += responseButtonTemplate.sizeDelta.y;
@@ -87,17 +88,18 @@ public void ShowResponse(Response[] responses)
 
 private void OnPickedResponse(Response response, int responseIndex, string key)
 {
-
     if (response.ResponseText.Contains("[+15 мин]") && !clickedResponseKeys.Contains(key))
     {
         currentTime = currentTime.Add(TimeSpan.FromMinutes(15));
         UpdateTimerDisplay();
         clickedResponseKeys.Add(key);
     }
+
     if (!clickedResponseKeys.Contains(key))
     {
         clickedResponseKeys.Add(key);
     }
+
     //Меняет флаг который влияет на отключение TypeWriterEffect в следующем диалоге
     if (response.ResponseText.Contains("[Продолжить..]"))
     {
@@ -112,10 +114,21 @@ private void OnPickedResponse(Response response, int responseIndex, string key)
     }
     tempResponseButtons.Clear();
 
-    if (responseEvents != null && responseIndex < responseEvents.Length)
+    if (responseEvents != null && responseIndex <= responseEvents.Length)
     {
+        //Debug.Log($"Invoking event for response {responseIndex}");
         responseEvents[responseIndex].OnPickedResponse?.Invoke();
     }
+    // else
+    // {
+        //Debug.Log(responseEvents.Length);
+    //     Debug.Log("No response events assigned or index out of range.");
+    // }
+    // if (responseEvents == null)
+    // {
+    //     Debug.Log("There is no responseEvents");
+    // }
+
     responseEvents = null;
     
     if (response.DialogueObject)
