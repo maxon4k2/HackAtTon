@@ -29,6 +29,8 @@ public class ResponseHandler : MonoBehaviour
     private Color currentColor = new Color(170f / 255f, 62f / 255f, 202f / 255f, 0.3f); // Current color (!!!Maybe to delete)
     private Color ContinuebuttonColor = new Color(34f / 255f, 139f / 255f, 34f / 255f, 1f); //Green color
 
+    private DialogueActivator currentDialogueActivator; // Add this field
+
     private void Start()
     {
         dialogueUI = GetComponent<DialogueUI>();
@@ -40,106 +42,114 @@ public class ResponseHandler : MonoBehaviour
         this.responseEvents = responseEvents;
     }
 
-public void ShowResponse(Response[] responses)
-{
-    float responseBoxHeight = 40f;
-
-    for (int i = 0; i < responses.Length; i++)
+    public void SetCurrentDialogueActivator(DialogueActivator activator)
     {
-        Response response = responses[i];
-        int responseIndex = i;
-        // Generate a unique key using the response's hash code and the loop index.
-        string key = response.GetHashCode() + "_" + i;
-        // Create a display version that may have "[+15 мин]" removed if this unique key was clicked.
-        string displayText = response.ResponseText;
-        Color buttonColor = originalColor;
+        currentDialogueActivator = activator;
+    }
 
-        //Удаляет [+15 мин] из Response если он уже был нажат и делает текст прозрачным
-        if (displayText.Contains("[+15 мин]") && clickedResponseKeys.Contains(key))
+    public void ShowResponse(Response[] responses)
+    {
+        float responseBoxHeight = 40f;
+
+        for (int i = 0; i < responses.Length; i++)
         {
-            displayText = displayText.Replace("[+15 мин]", "");
-            buttonColor = clickedColor;
+            Response response = responses[i];
+            int responseIndex = i;
+            // Generate a unique key using the response's hash code and the loop index.
+            string key = response.GetHashCode() + "_" + i;
+            // Create a display version that may have "[+15 мин]" removed if this unique key was clicked.
+            string displayText = response.ResponseText;
+            Color buttonColor = originalColor;
+
+            //Удаляет [+15 мин] из Response если он уже был нажат и делает текст прозрачным
+            if (displayText.Contains("[+15 мин]") && clickedResponseKeys.Contains(key))
+            {
+                displayText = displayText.Replace("[+15 мин]", "");
+                buttonColor = clickedColor;
+            }
+
+            //Меняет цвет кнопки [Продолжить..]
+            if (response.ResponseText.Contains("[Продолжить..]"))
+            {
+                buttonColor = ContinuebuttonColor;
+            }
+
+            // Instantiate and set up the response button.
+            GameObject responseButton = Instantiate(responseButtonTemplate.gameObject, responseContainer);
+            responseButton.SetActive(true);
+            TMP_Text buttonText = responseButton.GetComponent<TMP_Text>();
+            buttonText.text = i + 1 + ") - " + displayText;
+            buttonText.color = buttonColor;
+
+            Button buttonComponent = responseButton.GetComponent<Button>();
+            // Note: Now we pass only four arguments, matching your OnPickedResponse signature.
+            buttonComponent.onClick.AddListener(() => OnPickedResponse(response, responseIndex, key));
+
+            tempResponseButtons.Add(responseButton);
+            responseBoxHeight += responseButtonTemplate.sizeDelta.y;
         }
 
-        //Меняет цвет кнопки [Продолжить..]
-        if (response.ResponseText.Contains("[Продолжить..]"))
+        responseBox.sizeDelta = new Vector2(responseBox.sizeDelta.x, responseBoxHeight);
+        responseBox.gameObject.SetActive(true);
+    }
+
+    private void OnPickedResponse(Response response, int responseIndex, string key)
+    {
+        // Handle time-related responses
+        if (response.ResponseText.Contains("[+15 мин]") && !clickedResponseKeys.Contains(key))
         {
-            buttonColor = ContinuebuttonColor;
+            currentTime = currentTime.Add(TimeSpan.FromMinutes(15));
+            UpdateTimerDisplay();
+            clickedResponseKeys.Add(key);
         }
 
-        // Instantiate and set up the response button.
-        GameObject responseButton = Instantiate(responseButtonTemplate.gameObject, responseContainer);
-        responseButton.SetActive(true);
-        TMP_Text buttonText = responseButton.GetComponent<TMP_Text>();
-        buttonText.text = i + 1 + ") - " + displayText;
-        buttonText.color = buttonColor;
+        if (!clickedResponseKeys.Contains(key))
+        {
+            clickedResponseKeys.Add(key);
+        }
 
-        Button buttonComponent = responseButton.GetComponent<Button>();
-        // Note: Now we pass only four arguments, matching your OnPickedResponse signature.
-        buttonComponent.onClick.AddListener(() => OnPickedResponse(response, responseIndex, key));
+        // Execute current response events FIRST
+        if (responseEvents != null && responseIndex < responseEvents.Length)
+        {
+            Debug.Log($"Executing response event at index {responseIndex}");
+            responseEvents[responseIndex].OnPickedResponse?.Invoke();
+        }
 
-        tempResponseButtons.Add(responseButton);
-        responseBoxHeight += responseButtonTemplate.sizeDelta.y;
+        // Clear buttons and box
+        responseBox.gameObject.SetActive(false);
+        foreach (GameObject button in tempResponseButtons)
+        {
+            Destroy(button);
+        }
+        tempResponseButtons.Clear();
+
+        // Handle dialogue transition
+        if (response.DialogueObject)
+        {
+            string currentDialogueName = response.DialogueObject.name;
+            Debug.Log($"Moving to DialogueObject: {currentDialogueName}");
+
+            // Find the DialogueResponseEvents for the next dialogue
+            DialogueResponseEvents[] allEvents = currentDialogueActivator.GetComponents<DialogueResponseEvents>();
+            foreach (var events in allEvents)
+            {
+                if (events.DialogueObject == response.DialogueObject)
+                {
+                    Debug.Log($"Found events for {currentDialogueName}, updating responses");
+                    dialogueUI.AddResponseEvents(events.Events);
+                    break;
+                }
+            }
+
+            // Show the dialogue
+            dialogueUI.ShowDialogue(response.DialogueObject);
+        }
+        else
+        {
+            responseEvents = null;
+            dialogueUI.CloseDialogueBox();
+        }
     }
-
-    responseBox.sizeDelta = new Vector2(responseBox.sizeDelta.x, responseBoxHeight);
-    responseBox.gameObject.SetActive(true);
-}
-
-private void OnPickedResponse(Response response, int responseIndex, string key)
-{
-    if (response.ResponseText.Contains("[+15 мин]") && !clickedResponseKeys.Contains(key))
-    {
-        currentTime = currentTime.Add(TimeSpan.FromMinutes(15));
-        UpdateTimerDisplay();
-        clickedResponseKeys.Add(key);
-    }
-
-    if (!clickedResponseKeys.Contains(key))
-    {
-        clickedResponseKeys.Add(key);
-    }
-
-    //Меняет флаг который влияет на отключение TypeWriterEffect в следующем диалоге
-    if (response.ResponseText.Contains("[Продолжить..]"))
-    {
-        dialogueUI.NoTypeWriting = true;
-    }
-
-    responseBox.gameObject.SetActive(false);
-
-    foreach (GameObject button in tempResponseButtons)
-    {
-        Destroy(button);
-    }
-    tempResponseButtons.Clear();
-
-    if (responseEvents != null && responseIndex <= responseEvents.Length)
-    {
-        //Debug.Log($"Invoking event for response {responseIndex}");
-        responseEvents[responseIndex].OnPickedResponse?.Invoke();
-    }
-    // else
-    // {
-        //Debug.Log(responseEvents.Length);
-    //     Debug.Log("No response events assigned or index out of range.");
-    // }
-    // if (responseEvents == null)
-    // {
-    //     Debug.Log("There is no responseEvents");
-    // }
-
-    responseEvents = null;
-    
-    if (response.DialogueObject)
-    {
-        dialogueUI.ShowDialogue(response.DialogueObject);
-    }
-    else
-    {
-        dialogueUI.CloseDialogueBox();
-    }
-}
 
     // Updates the timer display text in hh:mm format.
     private void UpdateTimerDisplay()

@@ -12,6 +12,7 @@ public class DialogueActivator : MonoBehaviour, IInteracteble
 
     public void UpdateDialogueObject(DialogueObject dialogueObject)
     {
+        Debug.Log($"DialogueActivator updating dialogue from {this.dialogueObject?.name} to {dialogueObject?.name}");
         this.dialogueObject = dialogueObject;
     }
 
@@ -43,17 +44,21 @@ public class DialogueActivator : MonoBehaviour, IInteracteble
         // Activate the character's dialogue image
         characterImage.SetActive(true);
 
-        foreach (DialogueResponseEvents responseEvents in GetComponents<DialogueResponseEvents>())
+        // Set this activator as the current one
+        player.DialogueUI.GetComponent<ResponseHandler>().SetCurrentDialogueActivator(this);
+
+        // Find the matching DialogueResponseEvents for the initial dialogue
+        DialogueResponseEvents[] responseEvents = GetComponents<DialogueResponseEvents>();
+        foreach (var events in responseEvents)
         {
-            if (responseEvents.DialogueObject == dialogueObject)
+            if (events.DialogueObject == dialogueObject)
             {
-                player.DialogueUI.AddResponseEvents(responseEvents.Events);
+                player.DialogueUI.AddResponseEvents(events.Events);
                 break;
             }
         }
-        player.DialogueUI.ShowDialogue(dialogueObject);
 
-        // Start coroutine to disable the image after dialogue finishes
+        player.DialogueUI.ShowDialogue(dialogueObject);
         StartCoroutine(DisableImageAfterDialogue(player));
     }
 
